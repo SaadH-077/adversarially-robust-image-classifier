@@ -1,0 +1,10 @@
+# model artifacts (do not commit large weights)
+*.pt
+*.pth
+*.ckpt
+# data
+*.npz
+# python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
