@@ -15,15 +15,15 @@ Submission requirements (read carefully to avoid automatic rejection):
                   score = 0.5 * clean_accuracy + 0.5 * robustness_accuracy
 5. LIMITS       - one submission per group every 60 minutes (2 min cooldown on error).
 
-Our winning submission: resnet34 + FAT-MART + EMA + SGDR (state_dict produced by
-train_resnet34_fatmart.ipynb). MODEL_NAME = "resnet34".
+Our winning submission: resnet34 + Friendly-MART + EMA + SGDR (state_dict produced by
+train_resnet34_fatmart.ipynb, public leaderboard score 0.642964). MODEL_NAME = "resnet34".
 """
 
 BASE_URL = "http://34.63.153.158"
 
 # >>> FILL THESE IN BEFORE SUBMITTING <<<
 API_KEY    = "YOUR_API_KEY_HERE"                 # team API key (do NOT commit the real key)
-MODEL_PATH = "PATH/TO/resnet34_r34_fatmart_submission.pt"  # the state_dict to submit
+MODEL_PATH = "PATH/TO/resnet34_r34_fatmart_tau2_data_submission.pt"  # the state_dict to submit
 MODEL_NAME = "resnet34"                           # must match MODEL_PATH (resnet18/34/50)
 
 SUBMIT = False  # set to True only when you actually want to push to the server
