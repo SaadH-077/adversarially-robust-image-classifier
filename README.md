@@ -4,7 +4,7 @@ Training an image classifier that stays accurate under worst-case $\ell_\infty$ 
 perturbations ($\varepsilon = 8/255$), using **Friendly Adversarial Training + MART**
 (FAT·MART) with EMA weight averaging and SGDR cosine warm restarts on a ResNet-34.
 
-> **Public leaderboard score: `0.642964`** &nbsp;|&nbsp; metric = $\tfrac12$·clean&nbsp;+&nbsp;$\tfrac12$·robust accuracy
+> **Public leaderboard score: `0.642964`** &nbsp;|&nbsp; metric = $\tfrac12$·clean&nbsp;+&nbsp; $\tfrac12$·robust accuracy
 > &nbsp;|&nbsp; clean ≈ **0.770**, PGD-20 ≈ **0.516** on held-out validation.
 
 ---
@@ -17,7 +17,7 @@ restricted to `resnet18/34/50` from `torchvision` with **only the final `fc` lay
 replaced** to output 9 logits (the evaluation server reconstructs the bare architecture and
 loads the `state_dict`). A submission is scored as
 
-$$\text{score} \;=\; \tfrac{1}{2}\,A_{\text{clean}} \;+\; \tfrac{1}{2}\,A_{\text{rob}},$$
+$$\text{score} \=\ \tfrac{1}{2}\.A_{\text{clean}} \+\ \tfrac{1}{2}\.A_{\text{rob}}$$
 
 and is rejected if $A_{\text{clean}} < 0.5$. The evaluation attack is hidden, so the goal is
 *genuine* robustness, not robustness overfit to one attack.
@@ -43,7 +43,7 @@ the full attack. A curriculum ramps the margin, $\tau=\min(2,\lfloor\text{epoch}
 
 **Robust loss — MART (Wang et al., 2020).** On those examples we minimize
 
-$$\mathcal{L}_{\mathrm{MART}} = \underbrace{\mathrm{BCE}\big(f(x'),y\big)}_{\text{boosted CE on adv.}} \;+\; \beta\,\big(1 - p_f(y\mid x)\big)\,\underbrace{\mathrm{KL}\big(f(x)\,\|\,f(x')\big)}_{\text{robustness, up-weighted on misclassified}},\quad \beta=3,$$
+$$\mathcal{L}_{\mathrm{MART}} = \underbrace{\mathrm{BCE}\big(f(x'),y\big)}_{\text{boosted CE on adv.}} \+\ \beta\\,big(1 - p_f(y\mid x)\big)\,\underbrace{\mathrm{KL}\big(f(x)\,\|\,f(x')\big)}_{\text{robustness, up-weighted on misclassified}},\quad \beta=3,$$
 
 where $x'$ is the friendly adversarial example, $p_f(y\mid x)$ is the clean predicted
 probability of the true class, and $\mathrm{BCE}$ is cross-entropy plus a margin term that
