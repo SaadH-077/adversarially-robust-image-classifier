@@ -1,61 +1,29 @@
 # Adversarially Robust Image Classifier — Friendly·MART
 
-Training an image classifier that stays accurate under worst-case $\ell_\infty$ adversarial
-perturbations ($\varepsilon = 8/255$), using **Friendly Adversarial Training + MART**
-(FAT·MART) with EMA weight averaging and SGDR cosine warm restarts on a ResNet-34.
+ResNet-34 trained with **Friendly Adversarial Training + MART (FAT·MART)**, EMA weight
+averaging, and SGDR cosine warm restarts.
 
-> **Public leaderboard score: `0.642964`** &nbsp;|&nbsp; metric = $\tfrac12$·clean&nbsp;+&nbsp; $\tfrac12$·robust accuracy
+> **Public leaderboard score: `0.642964`** &nbsp;|&nbsp; metric = $\tfrac12$·clean + $\tfrac12$·robust accuracy
 > &nbsp;|&nbsp; clean ≈ **0.770**, PGD-20 ≈ **0.516** on held-out validation.
 
----
+## Problem
 
-## 1. Problem
+Train a `torchvision` ResNet (only the final `fc` replaced to output 9 logits) on 50,000
+images ($3\times32\times32$, 9 classes, used as `float`$/255 \in [0,1]$, **no normalization**)
+that is robust to a hidden $\ell_\infty$ attack at $\varepsilon = 8/255$. Submissions are
+scored as $\tfrac12 A_{\text{clean}} + \tfrac12 A_{\text{rob}}$ and rejected below 50% clean
+accuracy.
 
-Given 50,000 images ($3\times32\times32$, 9 classes, used as `float`$/255\in[0,1]$, **no
-normalization**), train a classifier robust to $\ell_\infty$ attacks. The architecture is
-restricted to `resnet18/34/50` from `torchvision` with **only the final `fc` layer
-replaced** to output 9 logits (the evaluation server reconstructs the bare architecture and
-loads the `state_dict`). A submission is scored as
+## Method
 
-$$\text{score} \=\ \tfrac{1}{2}\,A_{\text{clean}} \ +\ \tfrac{1}{2}\,A_{\text{rob}}$$
+ResNet-34 with the **MART** loss (a misclassification-aware robust loss) and a **friendly,
+early-stopped PGD inner attack (FAT)**, plus EMA and SGDR. FAT trains on the *least*-adversarial
+example, which preserves clean accuracy (the axis that transfers directly to the test score),
+while MART keeps robustness high, so both halves of the score rise together. The KL/softmax
+terms are computed in fp32 with logits clamped to $[-30, 30]$, which prevents an fp16 underflow
+that otherwise yields `nan` and stalls training.
 
-and is rejected if $A_{\text{clean}} < 0.5$. The evaluation attack is hidden, so the goal is
-*genuine* robustness, not robustness overfit to one attack.
-
-## 2. Method — Friendly·MART
-
-Because the score weights clean and robust accuracy equally (and clean accuracy transfers
-directly to the held-out test set), a strong model must lift **both** axes. Our recipe does
-this by pairing a misclassification-aware robust loss (MART) with a *friendly*,
-early-stopped inner attack (FAT).
-
-**Inner attack — PGD (Madry et al., 2018).** Adversarial examples are found by projected
-gradient ascent on the cross-entropy inside the $\ell_\infty$ ball:
-
-$$x^{(t+1)} = \Pi_{\|x'-x\|_\infty\le\varepsilon}\!\Big(x^{(t)} + \alpha\,\mathrm{sign}\big(\nabla_{x^{(t)}}\,\mathcal{L}_{\mathrm{CE}}(f(x^{(t)}),y)\big)\Big),\quad \varepsilon=\tfrac{8}{255},\ \alpha=\tfrac{2}{255}.$$
-
-**Friendly early-stopping — FAT (Zhang et al., 2020).** Maximally adversarial examples make
-training conservative and depress clean accuracy. FAT instead uses the *least*-adversarial
-example: PGD is run per-sample but **frozen $\tau$ steps after the point is first
-misclassified** ($f(x^{(t)})\neq y$); samples never misclassified within the step budget get
-the full attack. A curriculum ramps the margin, $\tau=\min(2,\lfloor\text{epoch}/20\rfloor)$
-— very friendly early (builds clean accuracy), slightly harder later (restores robustness).
-
-**Robust loss — MART (Wang et al., 2020).** On those examples we minimize
-
-$$\mathcal{L}_{\mathrm{MART}} = \underbrace{\mathrm{BCE}\big(f(x'),y\big)}_{\text{boosted CE on adv.}} \;+\; \beta\,\big(1 - p_f(y\mid x)\big)\,\underbrace{\mathrm{KL}\big(f(x)\,\|\,f(x')\big)}_{\text{robustness, up-weighted on misclassified}},\quad \beta=3,$$
-
-where $x'$ is the friendly adversarial example, $p_f(y\mid x)$ is the clean predicted
-probability of the true class, and $\mathrm{BCE}$ is cross-entropy plus a margin term that
-suppresses the most-likely wrong class. The KL/softmax terms are computed in **fp32 with
-logits clamped to $[-30,30]$** to avoid fp16 underflow producing `nan` (which silently makes
-the AMP gradient scaler skip every step).
-
-**Stabilisation.** We keep an exponential moving average (EMA, decay 0.999) of all weights
-and BatchNorm buffers and **submit the EMA model**; the schedule uses SGDR cosine warm
-restarts, which specifically improve PGD robustness.
-
-### Final configuration
+### Configuration
 
 | Component | Value |
 |---|---|
@@ -71,10 +39,10 @@ restarts, which specifically improve PGD robustness.
 | Data | 49,000 train / 1,000 held-out validation (seed 42) |
 | Checkpoint | best $\tfrac12 A_{\text{clean}} + \tfrac12 A_{\text{PGD-7}}$ on the held-out split |
 
-## 3. How to recreate the best result
+## How to recreate the best result
 
-1. **Open `train_robust_classifier.ipynb` in Google Colab** with a GPU runtime (T4 is
-   enough; ~80 minutes for 100 epochs). This single notebook reproduces the best result.
+1. **Open `train_robust_classifier.ipynb` in Google Colab** with a GPU runtime (T4 is enough;
+   ~80 minutes for 100 epochs). This single notebook reproduces the best result.
 2. **Run all cells, top to bottom.** The notebook:
    - downloads the dataset from
      `https://huggingface.co/datasets/SprintML/tml26_task3/resolve/main/train.npz`;
@@ -85,37 +53,21 @@ restarts, which specifically improve PGD robustness.
 3. **Submit** with `submission.py`: set `API_KEY`, `MODEL_PATH` (the saved `.pt`), and
    `MODEL_NAME = "resnet34"`, then set `SUBMIT = True` and run `python submission.py`.
 
-### Why FAT·MART
-Standard adversarial training and TRADES plateau on a flat trade-off frontier; MART raises
-robustness but sacrifices clean accuracy. **FAT** trains on the *least-adversarial* example,
-which preserves clean accuracy — the axis that transfers one-to-one to the held-out test
-set — while MART keeps robustness high. The combination lifts both axes at once.
+## Files
 
-## 4. Files
 - **`train_robust_classifier.ipynb`** — the winning training notebook; run this to recreate the result.
 - `submission.py` — leaderboard submission script (fill in your API key + model path).
 - `Assignment_3_-_Robustness.pdf` — the task specification.
 - `Other Experiments/` — every other approach we explored (PGD-AT, TRADES, MART, AWP,
-  augmentation, and capacity variants on ResNet-18/34/50). These are *not* needed to
-  recreate the best result; they document the full exploration behind it
-  (see the Appendix table below for what each varied).
+  augmentation, and capacity variants on ResNet-18/34/50). These are *not* needed to recreate
+  the best result; they document the full exploration behind it (see the appendix table).
 
-## 5. References
-- Madry et al. (2018), *Towards Deep Learning Models Resistant to Adversarial Attacks* (PGD-AT).
-- Zhang et al. (2019), *Theoretically Principled Trade-off between Robustness and Accuracy* (TRADES).
-- Wang et al. (2020), *Improving Adversarial Robustness Requires Revisiting Misclassified Examples* (MART).
-- Zhang et al. (2020), *Attacks Which Do Not Kill Training Make Adversarial Learning Stronger* (FAT).
-- Wu et al. (2020), *Adversarial Weight Perturbation Helps Robust Generalization* (AWP).
-- Loshchilov & Hutter (2017), *SGDR: Stochastic Gradient Descent with Warm Restarts*.
-- Izmailov et al. (2018), *Averaging Weights Leads to Wider Optima* (SWA / EMA).
-- Croce & Hein (2020), *Reliable Evaluation of Adversarial Robustness* (AutoAttack).
-
----
 
 ## Appendix — Experiments explored
 
 Every approach we tried, by what was varied (backbone, loss, inner attack, schedule,
-regularizer). Listed for completeness; the final recipe is **E30**.
+regularizer). Listed for completeness; the final recipe is **E30**. Code for each is in
+`Other Experiments/`.
 
 | # | Backbone | Loss | Inner attack | LR schedule | Key change explored |
 |---|---|---|---|---|---|
@@ -150,5 +102,5 @@ regularizer). Listed for completeness; the final recipe is **E30**.
 | E29 | ResNet-34 | FAT·MART (β=3) | FAT PGD, **τ cap 2** | SGDR `[40,60,80,100]` | friendlier curriculum |
 | **E30** | **ResNet-34** | **FAT·MART (β=3)** | **FAT PGD, τ cap 2** | **SGDR `[40,60,80,100]`** | **+ 49k data → final** |
 
-All experiments use $\varepsilon=8/255$, EMA(0.999), best-checkpoint selection, and
-crop+flip augmentation unless the row states otherwise.
+All experiments use $\varepsilon=8/255$, EMA(0.999), best-checkpoint selection, and crop+flip
+augmentation unless the row states otherwise.
