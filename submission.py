@@ -16,7 +16,7 @@ Submission requirements (read carefully to avoid automatic rejection):
 5. LIMITS       - one submission per group every 60 minutes (2 min cooldown on error).
 
 Our winning submission: resnet34 + Friendly-MART + EMA + SGDR (state_dict produced by
-train_resnet34_fatmart.ipynb, public leaderboard score 0.642964). MODEL_NAME = "resnet34".
+train_robust_classifier.ipynb, public leaderboard score 0.642964). MODEL_NAME = "resnet34".
 """
 
 BASE_URL = "http://34.63.153.158"

@@ -4,7 +4,7 @@ Training an image classifier that stays accurate under worst-case $\ell_\infty$ 
 perturbations ($\varepsilon = 8/255$), using **Friendly Adversarial Training + MART**
 (FAT·MART) with EMA weight averaging and SGDR cosine warm restarts on a ResNet-34.
 
-> **Public leaderboard score: `0.642964`** &nbsp;|&nbsp; metric = $\tfrac12$·clean&nbsp;+&nbsp; $\tfrac12$·robust accuracy
+> **Public leaderboard score: `0.642964`** &nbsp;|&nbsp; metric = $\tfrac12$·clean&nbsp;+&nbsp;$\tfrac12$·robust accuracy
 > &nbsp;|&nbsp; clean ≈ **0.770**, PGD-20 ≈ **0.516** on held-out validation.
 
 ---
@@ -17,7 +17,7 @@ restricted to `resnet18/34/50` from `torchvision` with **only the final `fc` lay
 replaced** to output 9 logits (the evaluation server reconstructs the bare architecture and
 loads the `state_dict`). A submission is scored as
 
-$$\text{score} \=\ \tfrac{1}{2}\.A_{\text{clean}} \+\ \tfrac{1}{2}\.A_{\text{rob}}$$
+$$\text{score} \;=\; \tfrac{1}{2}\,A_{\text{clean}} \;+\; \tfrac{1}{2}\,A_{\text{rob}},$$
 
 and is rejected if $A_{\text{clean}} < 0.5$. The evaluation attack is hidden, so the goal is
 *genuine* robustness, not robustness overfit to one attack.
@@ -43,7 +43,7 @@ the full attack. A curriculum ramps the margin, $\tau=\min(2,\lfloor\text{epoch}
 
 **Robust loss — MART (Wang et al., 2020).** On those examples we minimize
 
-$$\mathcal{L}_{\mathrm{MART}} = \underbrace{\mathrm{BCE}\big(f(x'),y\big)}_{\text{boosted CE on adv.}} \+\ \beta\\,big(1 - p_f(y\mid x)\big)\,\underbrace{\mathrm{KL}\big(f(x)\,\|\,f(x')\big)}_{\text{robustness, up-weighted on misclassified}},\quad \beta=3,$$
+$$\mathcal{L}_{\mathrm{MART}} = \underbrace{\mathrm{BCE}\big(f(x'),y\big)}_{\text{boosted CE on adv.}} \;+\; \beta\,\big(1 - p_f(y\mid x)\big)\,\underbrace{\mathrm{KL}\big(f(x)\,\|\,f(x')\big)}_{\text{robustness, up-weighted on misclassified}},\quad \beta=3,$$
 
 where $x'$ is the friendly adversarial example, $p_f(y\mid x)$ is the clean predicted
 probability of the true class, and $\mathrm{BCE}$ is cross-entropy plus a margin term that
@@ -73,8 +73,8 @@ restarts, which specifically improve PGD robustness.
 
 ## 3. How to recreate the best result
 
-1. **Open `train_resnet34_fatmart.ipynb` in Google Colab** with a GPU runtime (T4 is
-   enough; ~80 minutes for 100 epochs).
+1. **Open `train_robust_classifier.ipynb` in Google Colab** with a GPU runtime (T4 is
+   enough; ~80 minutes for 100 epochs). This single notebook reproduces the best result.
 2. **Run all cells, top to bottom.** The notebook:
    - downloads the dataset from
      `https://huggingface.co/datasets/SprintML/tml26_task3/resolve/main/train.npz`;
@@ -92,9 +92,13 @@ which preserves clean accuracy — the axis that transfers one-to-one to the hel
 set — while MART keeps robustness high. The combination lifts both axes at once.
 
 ## 4. Files
-- `train_resnet34_fatmart.ipynb` — the winning training notebook (recreates the result).
+- **`train_robust_classifier.ipynb`** — the winning training notebook; run this to recreate the result.
 - `submission.py` — leaderboard submission script (fill in your API key + model path).
 - `Assignment_3_-_Robustness.pdf` — the task specification.
+- `Other Experiments/` — every other approach we explored (PGD-AT, TRADES, MART, AWP,
+  augmentation, and capacity variants on ResNet-18/34/50). These are *not* needed to
+  recreate the best result; they document the full exploration behind it
+  (see the Appendix table below for what each varied).
 
 ## 5. References
 - Madry et al. (2018), *Towards Deep Learning Models Resistant to Adversarial Attacks* (PGD-AT).
