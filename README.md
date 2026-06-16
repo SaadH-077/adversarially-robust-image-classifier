@@ -4,7 +4,7 @@ Training an image classifier that stays accurate under worst-case $\ell_\infty$ 
 perturbations ($\varepsilon = 8/255$), using **Friendly Adversarial Training + MART**
 (FAT·MART) with EMA weight averaging and SGDR cosine warm restarts on a ResNet-34.
 
-> **Public leaderboard score: `0.642964`** &nbsp;|&nbsp; metric = $\tfrac12$·clean&nbsp;+&nbsp;$\tfrac12$·robust accuracy
+> **Public leaderboard score: `0.642964`** &nbsp;|&nbsp; metric = $\tfrac12$·clean&nbsp;+&nbsp; $\tfrac12$·robust accuracy
 > &nbsp;|&nbsp; clean ≈ **0.770**, PGD-20 ≈ **0.516** on held-out validation.
 
 ---
@@ -17,7 +17,7 @@ restricted to `resnet18/34/50` from `torchvision` with **only the final `fc` lay
 replaced** to output 9 logits (the evaluation server reconstructs the bare architecture and
 loads the `state_dict`). A submission is scored as
 
-$$\text{score} \;=\; \tfrac{1}{2}\,A_{\text{clean}} \;+\; \tfrac{1}{2}\,A_{\text{rob}},$$
+$$\text{score} \=\ \tfrac{1}{2}\,A_{\text{clean}} \ +\ \tfrac{1}{2}\,A_{\text{rob}}$$
 
 and is rejected if $A_{\text{clean}} < 0.5$. The evaluation attack is hidden, so the goal is
 *genuine* robustness, not robustness overfit to one attack.
